@@ -1,0 +1,21 @@
+REGION="eu-central-1"
+STACK_NAME="serverless-stack"
+BUCKET_NAME="serverless-dsg"
+
+echo "Undeploying your cloud formation stack and also the S3 bucket, where your functions are located"
+echo ""
+
+echo "aws --region $REGION cloudformation delete-stack --stack-name $STACK_NAME"
+aws --region $REGION cloudformation delete-stack --stack-name $STACK_NAME
+aws --region $REGION cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+
+echo "Stack $STACK_NAME undeployed successfully"
+echo ""
+
+echo "aws --region $REGION s3 rb s3://$BUCKET_NAME --force"
+aws --region $REGION s3 rb s3://$BUCKET_NAME --force
+
+echo "Successfully delelted S3 bucket - $BUCKET_NAME"
+echo ""
+
+echo "Succesfully deleted all resources"

@@ -1,0 +1,218 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates a dynamoDb instance
+Parameters:
+  DSGBucket:
+    Default: serverless-dsg
+    Type: String
+    Description: serverless-dsg default bucket
+  ItemApiStage:
+    Default: dev
+    Type: String
+    Description: stage of the item api
+Resources:
+  OrderTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: ID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ID
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      TableName: Order
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                  - dynamodb:GetRecords
+                Resource: arn:aws:dynamodb:*:*:table/*
+      RoleName: DSG-Lambda-Exec-Role
+  AllItemsFunction:
+    DependsOn: LambdaExecutionRole
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref 'DSGBucket'
+        S3Key: AllItems.jar
+      FunctionName: DSG-AllItems
+      MemorySize: 512
+      Timeout: 20
+      Handler: de.uniba.dsg.serverless.get.AllItemsHandler
+      Runtime: java8
+      Role: !GetAtt 'LambdaExecutionRole.Arn'
+  StoreOrderFunction:
+    DependsOn: LambdaExecutionRole
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Ref 'DSGBucket'
+        S3Key: StoreOrder.jar
+      FunctionName: DSG-StoreOrder
+      MemorySize: 512
+      Timeout: 20
+      Handler: de.uniba.dsg.serverless.post.StoreOrderHandler
+      Runtime: java8
+      Role: !GetAtt 'LambdaExecutionRole.Arn'
+      Environment:
+        Variables:
+          REGION: !Ref 'AWS::Region'
+  ItemApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: REST API Gateway for DSG demo application
+      Name: DSG-REST-API
+  ItemResource:
+    DependsOn: ItemApi
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref 'ItemApi'
+      ParentId: !GetAtt 'ItemApi.RootResourceId'
+      PathPart: items
+  LambdaPermissionAllItemsFunction:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:invokeFunction
+      FunctionName: !GetAtt 'AllItemsFunction.Arn'
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Join
+        - ''
+        - - 'arn:aws:execute-api:'
+          - !Ref 'AWS::Region'
+          - ':'
+          - !Ref 'AWS::AccountId'
+          - ':'
+          - !Ref 'ItemApi'
+          - /*
+  LambdaPermissionStoreOrderFunction:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:invokeFunction
+      FunctionName: !GetAtt 'StoreOrderFunction.Arn'
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Join
+        - ''
+        - - 'arn:aws:execute-api:'
+          - !Ref 'AWS::Region'
+          - ':'
+          - !Ref 'AWS::AccountId'
+          - ':'
+          - !Ref 'ItemApi'
+          - /*
+  ItemGet:
+    DependsOn:
+      - LambdaPermissionAllItemsFunction
+      - AllItemsFunction
+      - ItemApi
+      - ItemResource
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Type: AWS
+        Uri: !Join
+          - ''
+          - - 'arn:aws:apigateway:'
+            - !Ref 'AWS::Region'
+            - :lambda:path/2015-03-31/functions/
+            - !GetAtt 'AllItemsFunction.Arn'
+            - /invocations
+        IntegrationResponses:
+          - StatusCode: 200
+        RequestTemplates:
+          application/json: !Join
+            - ''
+            - - '#set($allParams = $input.params())'
+              - '#set($params = $allParams.get("querystring"))'
+              - '{'
+              - '  #foreach($paramName in $params.keySet())'
+              - '  "$paramName" : "$util.escapeJavaScript($params.get($paramName))"'
+              - '  #if($foreach.hasNext),#end'
+              - '  #end'
+              - '}'
+      OperationName: ListItems
+      ResourceId: !Ref 'ItemResource'
+      RestApiId: !Ref 'ItemApi'
+      MethodResponses:
+        - StatusCode: 200
+  ItemPost:
+    DependsOn:
+      - LambdaPermissionStoreOrderFunction
+      - StoreOrderFunction
+      - ItemApi
+      - ItemResource
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Type: AWS
+        Uri: !Join
+          - ''
+          - - 'arn:aws:apigateway:'
+            - !Ref 'AWS::Region'
+            - :lambda:path/2015-03-31/functions/
+            - !GetAtt 'StoreOrderFunction.Arn'
+            - /invocations
+        IntegrationResponses:
+          - StatusCode: 200
+      OperationName: StoreOrder
+      ResourceId: !Ref 'ItemResource'
+      RestApiId: !Ref 'ItemApi'
+      MethodResponses:
+        - StatusCode: 200
+  ItemApiDeployment:
+    DependsOn:
+      - ItemGet
+      - ItemPost
+      - ItemApi
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref 'ItemApi'
+      Description: Item API deployment
+      StageName: !Ref 'ItemApiStage'
+Outputs:
+  ItemApiUrl:
+    Description: The url of the item api
+    Value: !Join
+      - ''
+      - - https://
+        - !Ref 'ItemApi'
+        - .execute-api.
+        - !Ref 'AWS::Region'
+        - .amazonaws.com/
+        - !Ref 'ItemApiStage'
