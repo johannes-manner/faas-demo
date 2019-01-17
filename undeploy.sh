@@ -1,4 +1,6 @@
-FILE="config"    
+#!/bin/bash
+
+FILE="config"
 if [ -f $FILE ]; then
    echo "File $FILE exists."
    UNIQUE_ID=$(head -n 1 $FILE)

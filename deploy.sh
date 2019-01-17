@@ -1,8 +1,9 @@
+#!/bin/bash
 
 FILE="config"
 
 bash generateUniqueId $FILE
-  
+
 if [ -f $FILE ]; then
    echo "File $FILE exists."
    UNIQUE_ID=$(head -n 1 $FILE)
