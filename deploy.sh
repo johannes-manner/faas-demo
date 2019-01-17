@@ -2,7 +2,7 @@
 
 FILE="config"
 
-bash generateUniqueId $FILE
+bash generateUniqueId.sh $FILE
 
 if [ -f $FILE ]; then
    echo "File $FILE exists."

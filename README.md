@@ -61,13 +61,13 @@ There is a temporary file created, since the S3 bucket name must be unique withi
 Therefore a random string generation is used and the bucket name is stored in this config file:
 
 ```bash
->bash deploy
+>bash deploy.sh
 ```
 
 To tear down your infrastructure and delete all artifacts on your cloud provider's ecosystem, execute:
 
 ```bash
->bash undeploy
+>bash undeploy.sh
 ```
 
 **REMARKS**
