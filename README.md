@@ -48,11 +48,17 @@ Right click -> AWS Lambda -> Upload Function to AWS Lambda:
 
 Test your function via the test utility in your lambda console on AWS.
 
+## POST function - Store items in DynamoDb
+
+A sample **post.json** is included in the project structure.
+
 ## Automating your Infrastructure Creation via CloudFormation
 
 Because setting up every component (DynamoDb, API Gateway, IAM, Lambdas) is tedious, we use **Infrastructure as Code** offering on AWS to automate this and ease our application setup.
 
-To setup your infrastructure and defining your application as presented in the scenario, execute the following bash command:
+To setup your infrastructure and defining your application as presented in the scenario, execute the following bash command.
+There is a temporary file created, since the S3 bucket name must be unique within the AWS cloud.
+Therefore a random string generation is used and the bucket name is stored in this config file:
 
 ```bash
 >bash deploy

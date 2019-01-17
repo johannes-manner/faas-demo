@@ -1,0 +1,28 @@
+{
+  "customer": {
+    "name": "Mueller",
+    "surname": "Hans",
+    "mail": "hans.mueller@lambda.to",
+    "birthday": "2019-01-08"
+  },
+  "itemList": [
+    {
+      "artikelId": "12",
+      "name": "A",
+      "available": 4,
+      "price": 399
+    },
+    {
+      "artikelId": "13",
+      "name": "B",
+      "available": 5,
+      "price": 399
+    },
+    {
+      "artikelId": "14",
+      "name": "C",
+      "available": 6,
+      "price": 399
+    }
+  ]
+}
