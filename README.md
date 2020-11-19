@@ -6,20 +6,16 @@
 
 Get an AWS account to start your cloud experience on Amazon Web Services: https://aws.amazon.com/
 
-### Eclipse Plugin
+### Development with Eclipse
 
-Installing AWS Toolkit for Eclipse.
-Eclipse / Help / Install New Software / Work with: https://aws.amazon.com/eclipse and press Enter.
+If you are interested you can develop Java functions with Eclipse, but that's for now not the focus of this show case tutorial.
+Further infos are [here](eclipse.md).
 
-Select AWS Toolkit for Eclipse Core in the AWS Core Management Tools section plus other components you want to use.
-
-Further Information: https://docs.aws.amazon.com/toolkit-for-eclipse/v1/user-guide/setup-install.html
 
 ### Setting up your AWS credentials
 
-Installing the AWS CLI on your machine.
+Installing the AWS CLI on your machine and configure it.
 
-To be able to use the Eclipse AWS Plugin, you have to configure your AWS Credentials. Further information: https://docs.aws.amazon.com/toolkit-for-eclipse/v1/user-guide/setup-credentials.html
 
 ## Szenario
 
@@ -27,28 +23,7 @@ This is the overview of our scenario, including an API Gateway with a GET and PO
 
 ![alt text](scenario.png)
 
-## Get all items cloud Function - Doing all steps manually
-
-Eclipse / File / New / Other / AWS / AWS Lambda Project
-
-Use **Custom** as Input Type. Dependent on your use case, you can also use a pre-integrated type such as S3 Event or SNS Event and many more.
-
-Implement your logic and deploy your function to a selected region. Therefore go to your handler class:
-
-Right click -> AWS Lambda -> Upload Function to AWS Lambda:
- - Check the selected handler class
- - Select a region of your choice
- - Create a new Lambda function
- - Click **Next**
- - Create IAM Role and name it
- - Create S3 Bucket (storage location for your source code) and name it
- - Specify memory, e.g. 512
- - Timeout: 15
- - Click **Finish**
-
-Test your function via the test utility in your lambda console on AWS.
-
-## POST function - Store items in DynamoDb
+#### POST function - Store items in DynamoDb
 
 A sample **post.json** is included in the project structure.
 
@@ -82,3 +57,59 @@ Suffix **--capabilities CAPABILITY_NAMED_IAM** is needed since we are creating a
 For deploying your CloudFormation stack via the CLI, the .yaml configuration is used. Since writing YAML is error-prone and tedious, the AWS Labs on GitHub presented a tool to convert JSON to valid YAML, which was used during development.
 
  Source: https://github.com/awslabs/aws-cfn-template-flip
+
+## Accessing your API
+
+When your cloud formation deployment ends, you get a JSON like the following - some parts are left blank :)
+ ```
+ {
+     "Stacks": [
+         {
+             "StackId": "...",
+             "StackName": "serverless-stack-....",
+             "Description": "Creates a dynamoDb instance",
+             "Parameters": [
+                 {
+                     "ParameterKey": "ItemApiStage",
+                     "ParameterValue": "dev"
+                 },
+                 {
+                     "ParameterKey": "DSGBucket",
+                     "ParameterValue": "serverless-bucket-...."
+                 }
+             ],
+             "CreationTime": "2020-11-19...",
+             "RollbackConfiguration": {},
+             "StackStatus": "CREATE_COMPLETE",
+             "DisableRollback": false,
+             "NotificationARNs": [],
+             "Capabilities": [
+                 "CAPABILITY_NAMED_IAM"
+             ],
+             "Outputs": [
+                 {
+                     "OutputKey": "ItemApiUrl",
+                     "OutputValue": "https://API-STAGE.execute-api.eu-central-1.amazonaws.com/dev",
+                     "Description": "The url of the item api"
+                 }
+             ],
+             "Tags": [],
+             "EnableTerminationProtection": false,
+             "DriftInformation": {
+                 "StackDriftStatus": "NOT_CHECKED"
+             }
+         }
+     ]
+ }
+ ```
+
+So the result is a public API at endpoint: https://API-STAGE.execute-api.eu-central-1.amazonaws.com/dev.
+
+You can now CURL the GET endpoint via the base API path and the **items** subpath:
+```
+$ curl https://API-STAGE.execute-api.eu-central-1.amazonaws.com/dev/items
+```
+The same path is used for POSTing data:
+```
+$ curl -X POST -H "Content-Type: application/json" -d @./post.json https://API-Stage.execute-api.eu-central-1.amazonaws.com/dev/items
+```
