@@ -31,6 +31,13 @@ A sample **post.json** is included in the project structure.
 
 Because setting up every component (DynamoDb, API Gateway, IAM, Lambdas) is tedious, we use **Infrastructure as Code** offering on AWS to automate this and ease our application setup.
 
+Before deploying this sample, you should check if Maven can be used for building the jars.
+
+```bash
+mvn -v
+```
+If you get an error message, download the binary [here](https://maven.apache.org/download.cgi) and add the `bin` folder to your path.
+
 To setup your infrastructure and defining your application as presented in the scenario, execute the following bash command.
 There is a temporary file created, since the S3 bucket name must be unique within the AWS cloud.
 Therefore a random string generation is used and the bucket name is stored in this config file:
